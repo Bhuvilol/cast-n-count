@@ -126,8 +126,8 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-lg">Loading voting system...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-pulse text-lg text-white">Loading voting system...</div>
       </div>
     );
   }
@@ -135,51 +135,60 @@ const Index = () => {
   return (
     <div className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-gray-800">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12 animate-fade-in">
+        <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">Decentralized Voting</h1>
-          <p className="text-gray-300">
+          <p className="text-gray-300 mb-4">
             {account ? (
-              `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`
+              <>
+                Connected Wallet: <span className="font-mono">{account.slice(0, 6)}...{account.slice(-4)}</span>
+              </>
             ) : (
-              <Button onClick={connectWallet} className="bg-vote-mint text-gray-900 hover:bg-vote-mint/90">
+              <Button 
+                onClick={connectWallet} 
+                className="bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+              >
                 Connect Wallet
               </Button>
             )}
           </p>
         </div>
 
-        {hasVoted ? (
-          <div className="text-center p-6 bg-glass-background border border-glass-border rounded-lg backdrop-blur-sm animate-fade-in">
-            <h2 className="text-2xl text-white mb-4">Thank you for voting!</h2>
-            <p className="text-gray-300">Your vote has been recorded on the blockchain.</p>
-          </div>
-        ) : account ? (
-          candidates.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {candidates.map((candidate) => (
-                <Card
-                  key={candidate.id}
-                  className="p-6 bg-glass-background border border-glass-border backdrop-blur-sm transform transition-all duration-300 hover:scale-105 animate-fade-in"
-                >
-                  <h3 className="text-xl font-semibold text-white mb-4">{candidate.name}</h3>
-                  <p className="text-gray-300 mb-4">Current Votes: {candidate.voteCount}</p>
-                  <Button
-                    onClick={() => submitVote(candidate.id)}
-                    disabled={voting || hasVoted}
-                    className="w-full bg-vote-mint text-gray-900 hover:bg-vote-mint/90 disabled:opacity-50"
+        {account && !loading && (
+          <div className="space-y-8">
+            {hasVoted ? (
+              <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
+                <h2 className="text-2xl text-white mb-4">Thank you for voting!</h2>
+                <p className="text-gray-300">Your vote has been recorded on the blockchain.</p>
+              </div>
+            ) : candidates.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {candidates.map((candidate) => (
+                  <Card
+                    key={candidate.id}
+                    className="p-6 bg-opacity-10 bg-white backdrop-blur-lg rounded-xl border border-white/10 hover:border-purple-500/50 transition-all duration-300"
                   >
-                    {voting ? "Voting..." : "Vote"}
-                  </Button>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-6 bg-glass-background border border-glass-border rounded-lg backdrop-blur-sm">
-              <p className="text-gray-300">No candidates found. Please check the contract configuration.</p>
-            </div>
-          )
-        ) : (
-          <div className="text-center p-6 bg-glass-background border border-glass-border rounded-lg backdrop-blur-sm">
+                    <h3 className="text-xl font-semibold text-white mb-4">{candidate.name}</h3>
+                    <p className="text-gray-300 mb-4">Current Votes: {candidate.voteCount}</p>
+                    <Button
+                      onClick={() => submitVote(candidate.id)}
+                      disabled={voting || hasVoted}
+                      className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {voting ? "Confirming..." : "Vote"}
+                    </Button>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
+                <p className="text-gray-300">No candidates found. Please check the contract configuration.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!account && !loading && (
+          <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
             <p className="text-gray-300">Please connect your wallet to view candidates and vote.</p>
           </div>
         )}
