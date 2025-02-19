@@ -22,9 +22,14 @@ const Index = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        // Check if wallet is already connected
-        if (window.ethereum && window.ethereum.selectedAddress) {
-          await connectWallet();
+        // Check if wallet is already connected by requesting accounts
+        if (window.ethereum) {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (accounts && accounts.length > 0) {
+            await connectWallet();
+          } else {
+            setLoading(false);
+          }
         } else {
           setLoading(false);
         }
