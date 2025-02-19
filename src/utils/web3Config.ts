@@ -17,5 +17,5 @@ export const getWeb3Provider = async () => {
 };
 
 export const getVotingContract = (signer: ethers.Signer) => {
-  return new ethers.Contract(CONTRACT_ADDRESS, VotingABI, signer);
+  return new ethers.Contract(CONTRACT_ADDRESS, VotingABI.abi, signer);
 };
