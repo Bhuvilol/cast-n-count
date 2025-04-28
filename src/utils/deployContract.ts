@@ -18,15 +18,14 @@ export const deployVotingContract = async () => {
     // Get the contract factory
     const factory = new ethers.ContractFactory(
       VotingABI.abi,
-      // Get the bytecode from the compiled contract
       VotingABI.bytecode,
       signer
     );
 
-    // Default candidate list
-    const candidates = ['Candidate 1', 'Candidate 2', 'Candidate 3', 'Candidate 4'];
+    // Set the two candidates
+    const candidates = ['Modi', 'Rahul'];
     
-    // Deploy the contract
+    // Deploy the contract with the two candidates
     const contract = await factory.deploy(candidates);
     
     // Wait for deployment to finish
@@ -39,3 +38,4 @@ export const deployVotingContract = async () => {
     throw error;
   }
 };
+
