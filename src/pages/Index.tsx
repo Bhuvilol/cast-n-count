@@ -1,7 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { getWeb3Provider, getVotingContract } from '../utils/web3Config';
+import { getWeb3Provider, getVotingContract, CONTRACT_ADDRESS } from '../utils/web3Config';
+import { deployVotingContract } from '../utils/deployContract';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
@@ -19,6 +19,8 @@ const Index = () => {
   const [voting, setVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [contractAddress, setContractAddress] = useState(CONTRACT_ADDRESS);
 
   useEffect(() => {
     const init = async () => {
@@ -41,7 +43,7 @@ const Index = () => {
     };
 
     init();
-  }, []);
+  }, [contractAddress]);
 
   const loadInReadOnlyMode = async () => {
     try {
@@ -91,8 +93,8 @@ const Index = () => {
 
   const loadCandidates = async (signerOrProvider: ethers.Signer | ethers.providers.Provider) => {
     try {
-      console.log("Loading candidates...");
-      const contract = getVotingContract(signerOrProvider);
+      console.log("Loading candidates from address:", contractAddress);
+      const contract = new ethers.Contract(contractAddress, getVotingContract(signerOrProvider).interface, signerOrProvider);
       
       // First check if the contract is accessible
       const count = await contract.getCandidatesCount();
@@ -121,9 +123,10 @@ const Index = () => {
       console.error("Error loading candidates:", error);
       toast({
         title: "Error",
-        description: "Failed to load candidates. Please check your contract address.",
+        description: "Failed to load candidates. Please check your contract address or deploy a new contract.",
         variant: "destructive",
       });
+      setCandidates([]);
     } finally {
       setLoading(false);
     }
@@ -144,7 +147,7 @@ const Index = () => {
         return;
       }
       
-      const contract = getVotingContract(signer);
+      const contract = new ethers.Contract(contractAddress, getVotingContract(signer).interface, signer);
       
       const tx = await contract.vote(candidateId);
       await tx.wait();
@@ -164,6 +167,29 @@ const Index = () => {
       });
     } finally {
       setVoting(false);
+    }
+  };
+
+  const handleDeploy = async () => {
+    try {
+      setDeploying(true);
+      const newContractAddress = await deployVotingContract();
+      
+      toast({
+        title: "Contract Deployed!",
+        description: `New contract deployed at: ${newContractAddress}`,
+      });
+      
+      setContractAddress(newContractAddress);
+    } catch (error) {
+      console.error("Deployment error:", error);
+      toast({
+        title: "Deployment Failed",
+        description: "Failed to deploy contract. Check console for details.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeploying(false);
     }
   };
 
@@ -194,6 +220,22 @@ const Index = () => {
               </Button>
             )}
           </p>
+          {account && (
+            <div className="mt-4 flex justify-center space-x-4">
+              <Button
+                onClick={handleDeploy}
+                disabled={deploying || !account}
+                className="bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {deploying ? "Deploying..." : "Deploy New Contract"}
+              </Button>
+              {contractAddress !== CONTRACT_ADDRESS && (
+                <p className="text-green-400 mt-2 text-sm">
+                  Using contract: {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
+                </p>
+              )}
+            </div>
+          )}
           {isReadOnly && !account && (
             <p className="text-amber-400 text-sm">
               ⓘ Viewing in read-only mode. Connect wallet to vote.
@@ -226,9 +268,14 @@ const Index = () => {
                 </Card>
               ))}
             </div>
+          ) : account ? (
+            <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
+              <p className="text-gray-300 mb-4">No voting contract detected at the current address.</p>
+              <p className="text-amber-400">Click "Deploy New Contract" above to deploy a voting contract.</p>
+            </div>
           ) : (
             <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
-              <p className="text-gray-300">No candidates found. Please check the contract configuration.</p>
+              <p className="text-gray-300">Connect your wallet to deploy a new voting contract or vote.</p>
             </div>
           )}
         </div>
