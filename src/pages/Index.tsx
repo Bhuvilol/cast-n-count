@@ -2,15 +2,11 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { getWeb3Provider, getVotingContract, CONTRACT_ADDRESS } from '../utils/web3Config';
 import { deployVotingContract } from '../utils/deployContract';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
-
-interface Candidate {
-  id: number;
-  name: string;
-  voteCount: number;
-}
+import { VotingCard } from '@/components/voting/VotingCard';
+import { WalletConnect } from '@/components/voting/WalletConnect';
+import { DeployContract } from '@/components/voting/DeployContract';
+import { Candidate } from '@/types/voting';
 
 const Index = () => {
   const [account, setAccount] = useState<string>('');
@@ -25,7 +21,6 @@ const Index = () => {
   useEffect(() => {
     const init = async () => {
       try {
-        // Check if wallet is already connected by requesting accounts
         if (window.ethereum) {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (accounts && accounts.length > 0) {
@@ -96,7 +91,6 @@ const Index = () => {
       console.log("Loading candidates from address:", contractAddress);
       const contract = new ethers.Contract(contractAddress, getVotingContract(signerOrProvider).interface, signerOrProvider);
       
-      // First check if the contract is accessible
       const count = await contract.getCandidatesCount();
       console.log("Candidate count:", count.toString());
       
@@ -113,7 +107,6 @@ const Index = () => {
       console.log("Candidates loaded:", candidatesList);
       setCandidates(candidatesList);
       
-      // Only check if user has voted when we have a signer (connected wallet)
       if (!isReadOnly && signerOrProvider instanceof ethers.Signer) {
         const address = await signerOrProvider.getAddress();
         const voted = await contract.hasVoted(address);
@@ -204,44 +197,19 @@ const Index = () => {
   return (
     <div className="min-h-screen p-8 bg-gradient-to-b from-gray-900 to-gray-800">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Decentralized Voting</h1>
-          <p className="text-gray-300 mb-4">
-            {account ? (
-              <>
-                Connected Wallet: <span className="font-mono">{account.slice(0, 6)}...{account.slice(-4)}</span>
-              </>
-            ) : (
-              <Button 
-                onClick={connectWallet} 
-                className="bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-              >
-                Connect Wallet
-              </Button>
-            )}
-          </p>
-          {account && (
-            <div className="mt-4 flex justify-center space-x-4">
-              <Button
-                onClick={handleDeploy}
-                disabled={deploying || !account}
-                className="bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {deploying ? "Deploying..." : "Deploy New Contract"}
-              </Button>
-              {contractAddress !== CONTRACT_ADDRESS && (
-                <p className="text-green-400 mt-2 text-sm">
-                  Using contract: {contractAddress.slice(0, 6)}...{contractAddress.slice(-4)}
-                </p>
-              )}
-            </div>
-          )}
-          {isReadOnly && !account && (
-            <p className="text-amber-400 text-sm">
-              ⓘ Viewing in read-only mode. Connect wallet to vote.
-            </p>
-          )}
-        </div>
+        <WalletConnect 
+          account={account}
+          onConnect={connectWallet}
+          isReadOnly={isReadOnly}
+        />
+        
+        <DeployContract 
+          account={account}
+          contractAddress={contractAddress}
+          defaultContractAddress={CONTRACT_ADDRESS}
+          onDeploy={handleDeploy}
+          deploying={deploying}
+        />
 
         <div className="space-y-8">
           {hasVoted ? (
@@ -252,20 +220,14 @@ const Index = () => {
           ) : candidates.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {candidates.map((candidate) => (
-                <Card
+                <VotingCard
                   key={candidate.id}
-                  className="p-6 bg-opacity-10 bg-white backdrop-blur-lg rounded-xl border border-white/10 hover:border-purple-500/50 transition-all duration-300"
-                >
-                  <h3 className="text-xl font-semibold text-white mb-4">{candidate.name}</h3>
-                  <p className="text-gray-300 mb-4">Current Votes: {candidate.voteCount}</p>
-                  <Button
-                    onClick={() => submitVote(candidate.id)}
-                    disabled={voting || hasVoted || isReadOnly}
-                    className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    {voting ? "Confirming..." : isReadOnly ? "Connect to Vote" : "Vote"}
-                  </Button>
-                </Card>
+                  candidate={candidate}
+                  onVote={submitVote}
+                  isVoting={voting}
+                  isReadOnly={isReadOnly}
+                  hasVoted={hasVoted}
+                />
               ))}
             </div>
           ) : account ? (
