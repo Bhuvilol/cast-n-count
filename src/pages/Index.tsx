@@ -18,6 +18,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -28,28 +29,55 @@ const Index = () => {
           if (accounts && accounts.length > 0) {
             await connectWallet();
           } else {
-            setLoading(false);
+            await loadInReadOnlyMode();
           }
         } else {
-          setLoading(false);
+          await loadInReadOnlyMode();
         }
       } catch (error) {
         console.error("Initialization error:", error);
-        setLoading(false);
+        await loadInReadOnlyMode();
       }
     };
 
     init();
   }, []);
 
+  const loadInReadOnlyMode = async () => {
+    try {
+      const { provider, isReadOnly } = await getWeb3Provider();
+      setIsReadOnly(isReadOnly);
+      await loadCandidates(provider);
+      setLoading(false);
+    } catch (error) {
+      console.error("Read-only mode error:", error);
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to load voting data. Please refresh the page.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const connectWallet = async () => {
     try {
       setLoading(true);
-      const { signer } = await getWeb3Provider();
-      const address = await signer.getAddress();
-      setAccount(address);
-      console.log("Wallet connected:", address);
-      await loadCandidates(signer);
+      const { signer, isReadOnly } = await getWeb3Provider();
+      setIsReadOnly(isReadOnly);
+      
+      if (signer) {
+        const address = await signer.getAddress();
+        setAccount(address);
+        console.log("Wallet connected:", address);
+        await loadCandidates(signer);
+      } else {
+        await loadInReadOnlyMode();
+        toast({
+          title: "Read-Only Mode",
+          description: "Viewing in read-only mode. Connect wallet to vote.",
+        });
+      }
     } catch (error) {
       console.error("Wallet connection error:", error);
       toast({
@@ -57,14 +85,14 @@ const Index = () => {
         description: "Failed to connect wallet. Please try again.",
         variant: "destructive",
       });
-      setLoading(false);
+      await loadInReadOnlyMode();
     }
   };
 
-  const loadCandidates = async (signer: ethers.Signer) => {
+  const loadCandidates = async (signerOrProvider: ethers.Signer | ethers.providers.Provider) => {
     try {
       console.log("Loading candidates...");
-      const contract = getVotingContract(signer);
+      const contract = getVotingContract(signerOrProvider);
       
       // First check if the contract is accessible
       const count = await contract.getCandidatesCount();
@@ -83,8 +111,12 @@ const Index = () => {
       console.log("Candidates loaded:", candidatesList);
       setCandidates(candidatesList);
       
-      const voted = await contract.hasVoted(await signer.getAddress());
-      setHasVoted(voted);
+      // Only check if user has voted when we have a signer (connected wallet)
+      if (!isReadOnly && signerOrProvider instanceof ethers.Signer) {
+        const address = await signerOrProvider.getAddress();
+        const voted = await contract.hasVoted(address);
+        setHasVoted(voted);
+      }
     } catch (error) {
       console.error("Error loading candidates:", error);
       toast({
@@ -101,6 +133,17 @@ const Index = () => {
     try {
       setVoting(true);
       const { signer } = await getWeb3Provider();
+      
+      if (!signer) {
+        toast({
+          title: "Error",
+          description: "Please connect your wallet to vote.",
+          variant: "destructive",
+        });
+        setVoting(false);
+        return;
+      }
+      
       const contract = getVotingContract(signer);
       
       const tx = await contract.vote(candidateId);
@@ -151,47 +194,44 @@ const Index = () => {
               </Button>
             )}
           </p>
+          {isReadOnly && !account && (
+            <p className="text-amber-400 text-sm">
+              ⓘ Viewing in read-only mode. Connect wallet to vote.
+            </p>
+          )}
         </div>
 
-        {account && !loading && (
-          <div className="space-y-8">
-            {hasVoted ? (
-              <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
-                <h2 className="text-2xl text-white mb-4">Thank you for voting!</h2>
-                <p className="text-gray-300">Your vote has been recorded on the blockchain.</p>
-              </div>
-            ) : candidates.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {candidates.map((candidate) => (
-                  <Card
-                    key={candidate.id}
-                    className="p-6 bg-opacity-10 bg-white backdrop-blur-lg rounded-xl border border-white/10 hover:border-purple-500/50 transition-all duration-300"
+        <div className="space-y-8">
+          {hasVoted ? (
+            <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
+              <h2 className="text-2xl text-white mb-4">Thank you for voting!</h2>
+              <p className="text-gray-300">Your vote has been recorded on the blockchain.</p>
+            </div>
+          ) : candidates.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {candidates.map((candidate) => (
+                <Card
+                  key={candidate.id}
+                  className="p-6 bg-opacity-10 bg-white backdrop-blur-lg rounded-xl border border-white/10 hover:border-purple-500/50 transition-all duration-300"
+                >
+                  <h3 className="text-xl font-semibold text-white mb-4">{candidate.name}</h3>
+                  <p className="text-gray-300 mb-4">Current Votes: {candidate.voteCount}</p>
+                  <Button
+                    onClick={() => submitVote(candidate.id)}
+                    disabled={voting || hasVoted || isReadOnly}
+                    className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    <h3 className="text-xl font-semibold text-white mb-4">{candidate.name}</h3>
-                    <p className="text-gray-300 mb-4">Current Votes: {candidate.voteCount}</p>
-                    <Button
-                      onClick={() => submitVote(candidate.id)}
-                      disabled={voting || hasVoted}
-                      className="w-full bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      {voting ? "Confirming..." : "Vote"}
-                    </Button>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
-                <p className="text-gray-300">No candidates found. Please check the contract configuration.</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {!account && !loading && (
-          <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
-            <p className="text-gray-300">Please connect your wallet to view candidates and vote.</p>
-          </div>
-        )}
+                    {voting ? "Confirming..." : isReadOnly ? "Connect to Vote" : "Vote"}
+                  </Button>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center p-6 bg-opacity-20 bg-white backdrop-blur-lg rounded-xl border border-white/10">
+              <p className="text-gray-300">No candidates found. Please check the contract configuration.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
