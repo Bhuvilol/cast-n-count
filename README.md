@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# Welcome to my project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/961e5326-53b4-4af0-962f-819d781dbc6e
+**URL**: https://cast-n-count.vercel.app/
 
 ## How can I edit this code?
 
@@ -12,7 +12,7 @@ There are several ways of editing your application.
 
 If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+The only requirement is having Node.js & npm installed - 
 
 Follow these steps:
 
