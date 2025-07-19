@@ -4,10 +4,6 @@ A modern, secure decentralized voting platform built with React and blockchain t
 
 **🌐 Live Demo:** [https://cast-n-count.vercel.app/](https://cast-n-count.vercel.app/)
 
-![React](https://img.shields.io/badge/React-18.0.0-blue)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0.0-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.0.0-38B2AC)
-
 ## ✨ Features
 
 - **🔐 Secure Authentication** - Admin portal with password protection, voter portal with MetaMask
@@ -25,7 +21,7 @@ A modern, secure decentralized voting platform built with React and blockchain t
 
 ### Installation
 ```bash
-git clone https://github.com/yourusername/cast-n-count.git
+git clone https://github.com/Bhuvilol/cast-n-count.git
 cd cast-n-count
 npm install
 npm run dev
@@ -61,7 +57,7 @@ src/
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **Frontend**: React 18, Tailwind CSS
 - **UI Components**: shadcn/ui
 - **Build Tool**: Vite
 - **Blockchain**: Custom mock contract system
@@ -81,19 +77,6 @@ npm run preview  # Preview production build
 - Role-based access control
 - Vote validation and duplicate prevention
 - Persistent data storage with validation
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Connect GitHub repo to Vercel
-2. Build Command: `npm run build`
-3. Output Directory: `dist`
-
-### Manual
-```bash
-npm run build
-# Upload dist/ folder to your hosting provider
-```
 
 ## 🤝 Contributing
 
